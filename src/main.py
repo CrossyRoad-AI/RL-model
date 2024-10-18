@@ -1,9 +1,11 @@
-import torch as T
 import numpy as np
-from DQnetwork import Agent
 
+from sharedMemoryManager.sharedMemoryManager import *
+from DQNetwork.DQnetwork import Agent
 
 def main():
+    initSharedMemoryReader()
+
     # Hyperparameteres
     lr = 0.001
     n_games = 500  # Nbr of games to play
@@ -15,13 +17,11 @@ def main():
     input_dims = (4,)  # Change selon la dimension de l'état
     n_actions = 4  # Nbr of possible actions
 
-    agent = Agent(gamma=gamma, epsilon=epsilon, lr=lr, input_dims=input_dims, 
-                  batch_size=batch_size, n_actions=n_actions, eps_end=eps_min, eps_dec=eps_dec)
+    agent = Agent(gamma=gamma, epsilon=epsilon, lr=lr, input_dims=input_dims, batch_size=batch_size, n_actions=n_actions, eps_end=eps_min, eps_dec=eps_dec)
 
     # init game loop
     scores = []
     for episode in range(n_games):
-        
         observation = get_initial_game_state()  # get initial state of game (from Unity canal)
 
         done = False
@@ -51,11 +51,18 @@ def main():
         avg_score = np.mean(scores[-100:])
         print(f"Episode {episode}, Score: {score}, Average Score: {avg_score}, Epsilon: {agent.epsilon:.2f}")
 
+    closeSharedMemory()
+
 def get_initial_game_state():
     """
     Function that returns the initial state of the game.
     Should be replaced by the real communication with Unity.
     """
+
+    print("--> Waiting for memory ready state")
+    while(isDataReady() == 1):
+        print("------> Data is ready")
+
     pass
 
 def send_action_and_get_state(action):
