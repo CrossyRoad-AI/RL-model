@@ -56,19 +56,14 @@ def get_initial_game_state():
     Function that returns the initial state of the game.
     Should be replaced by the real communication with Unity.
     """
-    return np.random.random((4,))
+    pass
 
 def send_action_and_get_state(action):
     """
     Function that simulates sending an action to the game and receiving the next state.
     Should be replaced by the real communication with Unity.
     """
-    # simulate the environment dynamics
-    reward = 1  # Simulation of a reward (change according to the game)
-    new_state = np.random.random((4,))  
-    done = np.random.choice([True, False], p=[0.1, 0.9]) # Simulation of the end of the game
-    
-    return new_state, reward, done
+    pass
 
 if __name__ == '__main__':
     main()
@@ -84,3 +79,6 @@ if __name__ == '__main__':
 # État de l’Agent (Vivant ou Mort)
 # Vision Limitée :
 # -> limiter ce que l'agent voit, seulement les 5 cases devant lui
+
+
+# observation = [x, y, obs1_x, obs1_y, obs1_type, obs1_speed, obs1_dir, obs2_x, obs2_y, ..., distance_to_obj, alive] 
