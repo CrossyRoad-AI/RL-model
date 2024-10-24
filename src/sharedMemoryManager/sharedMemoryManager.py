@@ -1,28 +1,63 @@
+import struct
+
 from multiprocessing import shared_memory
 
 from constants.constants import *
 
-# Global var for shared memory manager
-shm_a = None
+class Singleton(type):
+    _instances = {}
 
-def initSharedMemoryReader():
-    # Use global var
-    global shm_a
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances: cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
+        return cls._instances[cls]
 
-    # Init shared memory space
-    shm_a = shared_memory.SharedMemory(name = SHARED_MEMORY_FILENAME, size = SHARED_MEMORY_SIZE)
+class SharedMemoryManager(metaclass = Singleton):
+    def __init__(self):
+        self._sharedMemory = self.initSharedMemory()
 
-    print(shm_a.buf[0])
+    def initSharedMemory(self):
+        return shared_memory.SharedMemory(name = SHARED_MEMORY_FILENAME, size = SHARED_MEMORY_SIZE)
+    
+    def closeSharedMemory(self):
+        self._sharedMemory.close()
+    
+    def isDataReady(self):
+        return self._sharedMemory.buf[0]
+        
+    @property
+    def buffer(self):
+        return self._sharedMemory.buf
+    
+    @property
+    def parsedBuffer(self):
+        fieldsToQuery = ["grass", "trees", "water", "water-lily"]
+        data = {
+            "score": 0,
+            "player": {
+                "alive": 0,
+                "x": 0,
+                "y": 0
+            }
+        }
 
-def isDataReady():
-    return shm_a.buf[0]
+        data["score"] = struct.unpack('<I', self._sharedMemory.buf[1 : 5])[0]
+        data["player"]["alive"] = self._sharedMemory.buf[5]
+        data["player"]["x"] = struct.unpack('<f', self._sharedMemory.buf[6 : 10])[0]
+        data["player"]["y"] = struct.unpack('<f', self._sharedMemory.buf[10 : 14])[0]
 
-def readBuffer():
-    # May use bytes(shm_a.buf[0: SHARED_MEMORY_SIZE]), if need into bytes string
-    return bytes(shm_a.buf[0: SHARED_MEMORY_SIZE])
+        offset = 14
+        for field in fieldsToQuery:
+            data[field] = {
+                "count": 0,
+                "positions": []
+            }
 
-def closeSharedMemory():
-    global shm_a
+            data[field]["count"] = struct.unpack('<I', self._sharedMemory.buf[offset : offset + 4])[0]
+            for i in range(0, data[field]["count"] * 2):
+                data[field]["positions"].append(struct.unpack('<f', self._sharedMemory.buf[offset + 4 + i * 4 : offset + 4 + i * 4 + 4])[0])
+            offset += 4 + data[field]["count"] * 2 * 4
 
-    # Close shared memory space
-    shm_a.close()
+        return data
+    
+    def __del__(self):
+        self.closeSharedMemory()

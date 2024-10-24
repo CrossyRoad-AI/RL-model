@@ -1,10 +1,40 @@
 import numpy as np
+import time
 
 from sharedMemoryManager.sharedMemoryManager import *
+from globalKeyEventGenerator.globalKeyEventGenerator import *
 from DQNetwork.DQnetwork import Agent
 
+import win32gui
+import win32process as wproc
+import win32api as wapi
+
+def winEnumHandler( hwnd, ctx ):
+    if win32gui.IsWindowVisible( hwnd ):
+        print(hex(hwnd), win32gui.GetWindowText(hwnd))
+        if win32gui.GetWindowText(hwnd) == "Crossy road": win32gui.SetFocus(hwnd)
+
 def main():
-    initSharedMemoryReader()
+    # win32gui.EnumWindows(winEnumHandler, None)
+
+    window_name = 'Crossy road'
+
+    handle = win32gui.FindWindow(None, window_name)
+    print("Window `{0:s}` handle: 0x{1:016X}".format(window_name, handle))
+
+    if not handle:
+        print("Invalid window handle")
+        return
+    
+    remote_thread, _ = wproc.GetWindowThreadProcessId(handle)
+    wproc.AttachThreadInput(wapi.GetCurrentThreadId(), remote_thread, True)
+    prev_handle = win32gui.SetFocus(handle)
+    
+    PressKey(0x57)
+    time.sleep(2)
+    ReleaseKey(0x57) # Alt~
+
+    SharedMemoryManager()
 
     # Hyperparameteres
     lr = 0.001
@@ -51,41 +81,24 @@ def main():
         avg_score = np.mean(scores[-100:])
         print(f"Episode {episode}, Score: {score}, Average Score: {avg_score}, Epsilon: {agent.epsilon:.2f}")
 
-    closeSharedMemory()
+    memoryManager = SharedMemoryManager()
+    del memoryManager
 
 def get_initial_game_state():
     """
     Function that returns the initial state of the game.
-    Should be replaced by the real communication with Unity.
     """
 
-    print("--> Waiting for memory ready state")
-    while(isDataReady() == 1):
-        print("------> Data is ready")
-
-    pass
+    while(not SharedMemoryManager().isDataReady()): pass
+    return SharedMemoryManager().parsedBuffer
 
 def send_action_and_get_state(action):
     """
     Function that simulates sending an action to the game and receiving the next state.
-    Should be replaced by the real communication with Unity.
     """
-    pass
+    
+    while(not SharedMemoryManager().isDataReady()): pass
+    return SharedMemoryManager().parsedBuffer
 
 if __name__ == '__main__':
     main()
-
-
-
-# Position de l'Agent
-# Informations sur l'Environnement Local
-# ->Positions des obstacles à proximité (voitures, trains, rivières, bûches)
-# ->Types d’obstacles
-# Vitesse et Direction des Obstacles
-# Distance de l'Agent aux Objectifs
-# État de l’Agent (Vivant ou Mort)
-# Vision Limitée :
-# -> limiter ce que l'agent voit, seulement les 5 cases devant lui
-
-
-# observation = [x, y, obs1_x, obs1_y, obs1_type, obs1_speed, obs1_dir, obs2_x, obs2_y, ..., distance_to_obj, alive] 
