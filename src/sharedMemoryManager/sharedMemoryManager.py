@@ -26,6 +26,7 @@ class SharedMemoryManager(metaclass = Singleton):
     
     def readAndParseBuffer(self):
         self._reloadData = False
+        self._sharedMemory.buf[0] = 0
 
         listBuffer = []
         parsedBuffer = {
@@ -42,17 +43,21 @@ class SharedMemoryManager(metaclass = Singleton):
         parsedBuffer["player"]["x"] = struct.unpack('<f', self._sharedMemory.buf[6 : 10])[0]
         parsedBuffer["player"]["y"] = struct.unpack('<f', self._sharedMemory.buf[10 : 14])[0]
 
-        listBuffer.append(parsedBuffer["score"])
-        listBuffer.append(parsedBuffer["player"]["alive"])
+        # listBuffer.append(parsedBuffer["score"])
+        # listBuffer.append(parsedBuffer["player"]["alive"])
         listBuffer.append(parsedBuffer["player"]["x"])
         listBuffer.append(parsedBuffer["player"]["y"])
 
         offset = 14
         for j, field in enumerate(FIELDS_TO_QUERY):
-            parsedBuffer[field] = { "count": 0 }
-            parsedBuffer[field]["count"] = struct.unpack('<I', self._sharedMemory.buf[offset : offset + 4])[0]
+            parsedBuffer[field] = { "count": struct.unpack('<I', self._sharedMemory.buf[offset : offset + 4])[0] }
 
-            for i in range(0, parsedBuffer[field]["count"] * 2):
+            count = 0
+            if field == "grass" or field == "water": count = 0
+            elif field == "trees": count = 0
+            else: count = parsedBuffer[field]["count"] * 2
+
+            for i in range(0, count * 2): #parsedBuffer[field]["count"] * 2
                 try:
                     listBuffer.append(struct.unpack('<f', self._sharedMemory.buf[offset + 4 + i * 4 : offset + 4 + i * 4 + 4])[0])
                 except struct.error:
@@ -61,12 +66,15 @@ class SharedMemoryManager(metaclass = Singleton):
                     exit(150)
 
             # Pad array
-            if parsedBuffer[field]["count"] * 2 < PAD_PER_FIELDS[j]: listBuffer = listBuffer + [0] * (PAD_PER_FIELDS[j] - parsedBuffer[field]["count"] * 2)
+            if parsedBuffer[field]["count"] * 2 < PAD_PER_FIELDS[j]: listBuffer = listBuffer + [0] * (PAD_PER_FIELDS[j] - count * 2) # parsedBuffer[field]["count"] * 2
 
             offset += 4 + parsedBuffer[field]["count"] * 2 * 4
 
         self._parsedBuffer = parsedBuffer
         self._listBuffer = listBuffer
+
+    def writeAt(self, index, value):
+        self._sharedMemory.buf[index] = value
         
     @property
     def buffer(self):
