@@ -1,13 +1,17 @@
+import numpy as np
+
 import torch as T
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-import numpy as np
 
+from constants.constants import *
+from utils.singleton import Singleton
 
 class DeepQNetwork(nn.Module):
     def __init__(self, lr, input_dims, fc1_dims, fc2_dims, n_actions):
         super(DeepQNetwork, self).__init__()
+
         self.input_dims = input_dims
         self.fc1_dims = fc1_dims
         self.fc2_dims = fc2_dims
@@ -18,8 +22,8 @@ class DeepQNetwork(nn.Module):
         self.optimizer = optim.Adam(self.parameters(), lr=lr)
         self.loss = nn.MSELoss()
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
+        print("Using device:", self.device)
         self.to(self.device)
-
 
     def forward(self, state):
         X = F.relu(self.fc1(state)) # we want to pass the state through the first layer
@@ -28,11 +32,8 @@ class DeepQNetwork(nn.Module):
                             # we don't use an activation function here because we want the raw Q values
         return actions
 
-
-
-class Agent():
-    def __init__(self, gamma, epsilon, lr, input_dims, batch_size, n_actions,
-                 max_mem_size=100000, eps_end=0.01, eps_dec=5e-4):
+class Agent(metaclass = Singleton):
+    def __init__(self, gamma, epsilon, lr, input_dims, batch_size, n_actions, max_mem_size = INPUT_DIMS * 4, eps_end = 0.01, eps_dec = 5e-4):
         self.gamma = gamma
         self.epsilon = epsilon
         self.eps_min = eps_end
@@ -43,27 +44,24 @@ class Agent():
         self.batch_size = batch_size
         self.mem_ctr = 0 #  to keep track of the position of the first available memory for storing the agent's memory
         
-        self.Q_eval = DeepQNetwork(lr, n_actions=n_actions, input_dims=input_dims,
-                                   fc1_dims=256, fc2_dims=256) # the Q network that the agent uses to learn, fc1_dims and fc2_dims are the number of neurons in the first and second hidden layers which are 256 by default
+        self.Q_eval = DeepQNetwork(lr, n_actions=n_actions, input_dims=input_dims, fc1_dims=256, fc2_dims=256) # the Q network that the agent uses to learn, fc1_dims and fc2_dims are the number of neurons in the first and second hidden layers which are 256 by default
         
-        self.state_memory = np.zeros((self.mem_size, *input_dims), 
-                                     dtype=np.float32) # the memory of the states
-        self.new_state_memory = np.zeros((self.mem_size, *input_dims), 
-                                         dtype=np.float32)    # the memory of the new states
+        self.state_memory = np.zeros((self.mem_size, *input_dims), dtype=np.float32) # the memory of the states
+        self.new_state_memory = np.zeros((self.mem_size, *input_dims), dtype=np.float32)    # the memory of the new states
         
-# what the agent wants to know for the temporal difference update rule is what is the value of current state, the value of the next state, 
-# the reward it recieved and the action it took and to get that you have to pass in a memory of the states that resulted from its actions 
-# because deep q learning is a 1.model free, 2.bootstrapped, 3.off policy learning method
+        # what the agent wants to know for the temporal difference update rule is what is the value of current state, the value of the next state, 
+        # the reward it recieved and the action it took and to get that you have to pass in a memory of the states that resulted from its actions 
+        # because deep q learning is a 1.model free, 2.bootstrapped, 3.off policy learning method
 
-# 1. model free means that we don't need to know anything about the dynmaics of the environment, how the game works, we're gonna figure that 
-# out by playing the game 
+        # 1. model free means that we don't need to know anything about the dynmaics of the environment, how the game works, we're gonna figure that 
+        # out by playing the game 
 
-# 2. boostrapped means that you  are going to construct estimates of action value functions meaning the value of each action given you're 
-# in some state based on earlier estimates (you're using one estimate to update another (you're pulling yourseld up by the bootstraps))
+        # 2. boostrapped means that you  are going to construct estimates of action value functions meaning the value of each action given you're 
+        # in some state based on earlier estimates (you're using one estimate to update another (you're pulling yourseld up by the bootstraps))
 
-# 3. off policy means that you have a policy that you use to generate actions which is epsilon greedy meaning that we use the hyperparameter that 
-# we defined (epsilon) to determine the proportion of time that the agent is taking random VS greedy actions and you're going to use that policy 
-# to generate data for updating the purely greedy policy meaning the agent's estimate of the maximum action value function
+        # 3. off policy means that you have a policy that you use to generate actions which is epsilon greedy meaning that we use the hyperparameter that 
+        # we defined (epsilon) to determine the proportion of time that the agent is taking random VS greedy actions and you're going to use that policy 
+        # to generate data for updating the purely greedy policy meaning the agent's estimate of the maximum action value function
 
         self.action_memory = np.zeros(self.mem_size, dtype=np.int32) # the memory of the actions    
         self.reward_memory = np.zeros(self.mem_size, dtype=np.float32) # the memory of the rewards
@@ -74,6 +72,7 @@ class Agent():
         index= self.mem_ctr % self.mem_size # using the modulus has the property that this will wrap around so once we go from memory 0 up to 99999 
                                             # that 100,000 memory we store will go all the way back in position 0 so we rewrite the agents earliest 
                                             # memories with new memories and thats because the memory is finite
+        
         self.state_memory[index] = state
         self.new_state_memory[index] = state_
         self.reward_memory[index] = reward
