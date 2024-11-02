@@ -20,7 +20,7 @@ class DeepQNetwork(nn.Module):
         self.fc2 = nn.Linear(self.fc1_dims, self.fc2_dims)
         self.fc3 = nn.Linear(self.fc2_dims, self.n_actions)
         self.optimizer = optim.Adam(self.parameters(), lr=lr)
-        self.loss = nn.MSELoss()
+        self.loss = nn.SmoothL1Loss()
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
         print("Using device:", self.device)
         self.to(self.device)
@@ -44,7 +44,7 @@ class Agent(metaclass = Singleton):
         self.batch_size = batch_size
         self.mem_ctr = 0 #  to keep track of the position of the first available memory for storing the agent's memory
         
-        self.Q_eval = DeepQNetwork(lr, n_actions=n_actions, input_dims=input_dims, fc1_dims=256, fc2_dims=256) # the Q network that the agent uses to learn, fc1_dims and fc2_dims are the number of neurons in the first and second hidden layers which are 256 by default
+        self.Q_eval = DeepQNetwork(lr, n_actions=n_actions, input_dims=input_dims, fc1_dims=512, fc2_dims=256) # the Q network that the agent uses to learn, fc1_dims and fc2_dims are the number of neurons in the first and second hidden layers which are 256 by default
         
         self.state_memory = np.zeros((self.mem_size, *input_dims), dtype=np.float32) # the memory of the states
         self.new_state_memory = np.zeros((self.mem_size, *input_dims), dtype=np.float32)    # the memory of the new states
@@ -132,7 +132,7 @@ class Agent(metaclass = Singleton):
         q_next[terminal_batch] = 0.0
 
         # maximum value of the next state and that is the purely greedy action and it's what we want for updating our loss function
-        q_target = reward_batch + self.gamma + T.max(q_next, dim=1)[0] # this is where we want to update our estimates towards (the zeroth element because the max function 
+        q_target = reward_batch + self.gamma * T.max(q_next, dim=1)[0] # this is where we want to update our estimates towards (the zeroth element because the max function 
                                                                     # returns the value as well as the index and we only want the value)
 
         loss = self.Q_eval.loss(q_target, q_eval).to(self.Q_eval.device)
