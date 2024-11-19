@@ -13,6 +13,11 @@ class DeepQNetwork(nn.Module):
         super(DeepQNetwork, self).__init__()
 
         self.input_dims = input_dims
+        # self.conv1 = nn.Conv2d(self.input_dims[0], 32, 8, stride=4) # 32 filters, 8x8 kernel, stride of 4
+        # self.conv2 = nn.Conv2d(32, 64, 4, stride=2) # 64 filters, 4x4 kernel, stride of 2
+        # self.conv3 = nn.Conv2d(64, 64, 3, stride=1) # 64 filters, 3x3 kernel, stride of 1
+        # self.fc4 = nn.Linear(*self.input_dims, fc1_dims)
+        # self.fc5 = nn.Linear(fc1_dims, n_actions)
         self.fc1_dims = fc1_dims
         self.fc2_dims = fc2_dims
         self.n_actions = n_actions
@@ -20,12 +25,18 @@ class DeepQNetwork(nn.Module):
         self.fc2 = nn.Linear(self.fc1_dims, self.fc2_dims)
         self.fc3 = nn.Linear(self.fc2_dims, self.n_actions)
         self.optimizer = optim.Adam(self.parameters(), lr=lr)
-        self.loss = nn.MSELoss()
+        self.loss = nn.SmoothL1Loss()
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
         print("Using device:", self.device)
         self.to(self.device)
 
     def forward(self, state):
+        # x = F.relu(self.conv1(state))
+        # x = F.relu(self.conv2(x))
+        # x = F.relu(self.conv3(x))
+        # x = F.relu(self.fc4(x.view(state.size(0), -1)))
+        # actions = self.fc5(x)
+        state = state.to(self.device)
         X = F.relu(self.fc1(state)) # we want to pass the state through the first layer
         X = F.relu(self.fc2(X)) # pass the output of the first layer through the second layer
         actions = self.fc3(X) # pass the output of the second layer through the third layer
@@ -44,7 +55,7 @@ class Agent(metaclass = Singleton):
         self.batch_size = batch_size
         self.mem_ctr = 0 #  to keep track of the position of the first available memory for storing the agent's memory
         
-        self.Q_eval = DeepQNetwork(lr, n_actions=n_actions, input_dims=input_dims, fc1_dims=256, fc2_dims=256) # the Q network that the agent uses to learn, fc1_dims and fc2_dims are the number of neurons in the first and second hidden layers which are 256 by default
+        self.Q_eval = DeepQNetwork(lr, n_actions=n_actions, input_dims=input_dims, fc1_dims=512, fc2_dims=512) # the Q network that the agent uses to learn, fc1_dims and fc2_dims are the number of neurons in the first and second hidden layers which are 256 by default
         
         self.state_memory = np.zeros((self.mem_size, *input_dims), dtype=np.float32) # the memory of the states
         self.new_state_memory = np.zeros((self.mem_size, *input_dims), dtype=np.float32)    # the memory of the new states
@@ -100,6 +111,7 @@ class Agent(metaclass = Singleton):
         # (you're not selecting actions intelligently you're just doing it at random)
         # 2. another possibility is to start learning as soon as you filled up the batch size of memory
         if self.mem_ctr < self.batch_size:
+            print("Not enough memory to learn")
             return # we're gonna call the learn function every iteration of our game loop and if we have not filled up the batch size of our memory you just go 
                 # ahead and return, don't bother learning  
 
@@ -132,11 +144,17 @@ class Agent(metaclass = Singleton):
         q_next[terminal_batch] = 0.0
 
         # maximum value of the next state and that is the purely greedy action and it's what we want for updating our loss function
-        q_target = reward_batch + self.gamma + T.max(q_next, dim=1)[0] # this is where we want to update our estimates towards (the zeroth element because the max function 
+        q_target = reward_batch + self.gamma * T.max(q_next, dim=1)[0] # this is where we want to update our estimates towards (the zeroth element because the max function 
                                                                     # returns the value as well as the index and we only want the value)
 
         loss = self.Q_eval.loss(q_target, q_eval).to(self.Q_eval.device)
         loss.backward() # back propagation
+        
+        # Gradient clipping
+        for param in self.Q_eval.parameters():
+            if param.grad is not None:
+                param.grad.data.clamp_(-1, 1)  # Clip gradients between -1 and 1
+
         self.Q_eval.optimizer.step()
 
         # the next thing we have to handle is the epsilon decrement so each time we learn we're gonna decrease epsilon by 1
