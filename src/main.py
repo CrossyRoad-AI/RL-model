@@ -4,7 +4,7 @@ from constants.constants import *
 
 from sharedMemoryManager.sharedMemoryManager import SharedMemoryManager
 from DQNetwork.DQnetwork import Agent
-from DQNetwork.model import save_model, load_model
+from DQNetwork.model import save_model, get_latest_generation, load_model, load_latest_model
 from utils.dataPloting import plotLearning
 
 lastScore = 0
@@ -21,10 +21,7 @@ def main():
 
     agent = Agent(gamma = GAMMA, epsilon = EPSILON, lr = LR, input_dims = (INPUT_DIMS,), batch_size = BATCH_SIZE, n_actions = NB_ACTIONS, eps_end = EPS_MIN, eps_dec = EPS_DEC)
 
-    model_path = 'checkpoints/model.pth'
-    if os.path.exists(model_path):
-        load_model(agent, model_path)
-        print("Model loaded successfully")
+    current_generation = load_latest_model(agent)
 
     # Init game loop
     scores = []
@@ -65,8 +62,8 @@ def main():
         sharedMemoryManager.writeAt(1199, 10)
 
         if episode % save_frequency == 0:
-            save_model(agent, model_path)
-            print(f"Model saved to {model_path} at episode {episode}")
+            current_generation += 1
+            save_model(agent, current_generation)
     
     sharedMemoryManager = SharedMemoryManager()
     del sharedMemoryManager
@@ -134,3 +131,4 @@ def calculate_reward(sharedMemoryManager, lastScore, done):
 
 if __name__ == '__main__':
     main()
+
