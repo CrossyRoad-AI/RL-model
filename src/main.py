@@ -60,7 +60,8 @@ def get_initial_game_state():
     sharedMemoryManager = SharedMemoryManager()
     while(not sharedMemoryManager.isDataReady()): pass
 
-    return sharedMemoryManager.listBuffer
+    # return sharedMemoryManager.listBuffer
+    return sharedMemoryManager.matrixBuffer
 
 def send_action_and_get_state(action):
     """
@@ -81,7 +82,7 @@ def send_action_and_get_state(action):
     reward = newScore if not done else -5
     lastScore = sharedMemoryManager.parsedBuffer["score"]
 
-    return sharedMemoryManager.listBuffer, reward, done
+    return sharedMemoryManager.matrixBuffer, reward, done
 
 if __name__ == '__main__':
     main()

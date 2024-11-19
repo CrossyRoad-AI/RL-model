@@ -24,7 +24,7 @@ class SharedMemoryManager(metaclass = Singleton):
         self._reloadData = True
         return self._sharedMemory.buf[0]
     
-    def readAndParseBuffer(self):
+    def readAndParseBufferv1(self):
         self._reloadData = False
         self._sharedMemory.buf[0] = 0
 
@@ -73,6 +73,37 @@ class SharedMemoryManager(metaclass = Singleton):
         self._parsedBuffer = parsedBuffer
         self._listBuffer = listBuffer
 
+    def readAndParseBuffer(self):
+        self._reloadData = False
+        self._sharedMemory.buf[0] = 0
+
+        parsedBuffer = {
+            "score": 0,
+            "player": {
+                "alive": 0,
+            },
+
+            "nbRows": 0,
+            "matrix": [],
+        }
+
+        parsedBuffer["score"] = struct.unpack('<I', self._sharedMemory.buf[1 : 5])[0]
+        parsedBuffer["player"]["alive"] = self._sharedMemory.buf[5]
+
+        parsedBuffer["nbRows"] = struct.unpack('<I', self._sharedMemory.buf[6 : 10])[0]
+
+        maxRows = 15
+
+        for i in range(0, maxRows):
+            row = []
+
+            for j in range(0, 11):
+                row.append(self._sharedMemory.buf[10 + i * 11 + j])
+            
+            parsedBuffer["matrix"].append(row)
+
+        self._parsedBuffer = parsedBuffer
+
     def writeAt(self, index, value):
         self._sharedMemory.buf[index] = value
         
@@ -89,6 +120,11 @@ class SharedMemoryManager(metaclass = Singleton):
     def listBuffer(self):
         if self._reloadData: self.readAndParseBuffer()
         return self._listBuffer
+    
+    @property
+    def matrixBuffer(self):
+        if self._reloadData: self.readAndParseBuffer()
+        return self._parsedBuffer["matrix"]
     
     def __del__(self):
         self.closeSharedMemory()
