@@ -19,7 +19,9 @@ def main():
     # Init shared memory manager
     SharedMemoryManager()
 
-    agent = Agent(gamma = GAMMA, epsilon = EPSILON, lr = LR, input_dims = (INPUT_DIMS,), batch_size = BATCH_SIZE, n_actions = NB_ACTIONS, eps_end = EPS_MIN, eps_dec = EPS_DEC)
+
+
+    agent = Agent(gamma = GAMMA, epsilon = EPSILON, lr = LR, input_dims = INPUT_DIMS, batch_size = BATCH_SIZE, n_actions = NB_ACTIONS, eps_end = EPS_MIN, eps_dec = EPS_DEC)
 
     current_generation = load_latest_model(agent)
 
@@ -92,6 +94,7 @@ def send_action_and_get_state(action):
     """
 
     sharedMemoryManager = SharedMemoryManager()
+        # print the shared memory matrix's size
     sharedMemoryManager.writeAt(1199, action + 1)
 
     while(not sharedMemoryManager.isDataReady()): pass

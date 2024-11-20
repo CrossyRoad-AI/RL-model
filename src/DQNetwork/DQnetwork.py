@@ -13,15 +13,17 @@ class DeepQNetwork(nn.Module):
         super(DeepQNetwork, self).__init__()
 
         self.input_dims = input_dims
-        # self.conv1 = nn.Conv2d(self.input_dims[0], 32, 8, stride=4) # 32 filters, 8x8 kernel, stride of 4
-        # self.conv2 = nn.Conv2d(32, 64, 4, stride=2) # 64 filters, 4x4 kernel, stride of 2
-        # self.conv3 = nn.Conv2d(64, 64, 3, stride=1) # 64 filters, 3x3 kernel, stride of 1
-        # self.fc4 = nn.Linear(*self.input_dims, fc1_dims)
-        # self.fc5 = nn.Linear(fc1_dims, n_actions)
+        
+        self.conv1 = nn.Conv2d(self.input_dims[0], 32, 3, stride=1) 
+        self.conv2 = nn.Conv2d(32, 64, 3, stride=1) 
+        self.conv3 = nn.Conv2d(64, 64, 3, stride=1)
+        
+        conv_out_size = self._get_conv_out(self.input_dims)
+
         self.fc1_dims = fc1_dims
         self.fc2_dims = fc2_dims
         self.n_actions = n_actions
-        self.fc1 = nn.Linear(*self.input_dims, self.fc1_dims) # its a way of unpacking the list of the elements of the observation space
+        self.fc1 = nn.Linear(conv_out_size, self.fc1_dims) # its a way of unpacking the list of the elements of the observation space
         self.fc2 = nn.Linear(self.fc1_dims, self.fc2_dims)
         self.fc3 = nn.Linear(self.fc2_dims, self.n_actions)
         self.optimizer = optim.Adam(self.parameters(), lr=lr)
@@ -30,21 +32,30 @@ class DeepQNetwork(nn.Module):
         print("Using device:", self.device)
         self.to(self.device)
 
+    def _get_conv_out(self, shape):
+        o = T.zeros(1, *shape)
+        o = self.conv1(o)
+        o = self.conv2(o)
+        o = self.conv3(o)
+        return int(np.prod(o.size()))
+    
     def forward(self, state):
-        # x = F.relu(self.conv1(state))
-        # x = F.relu(self.conv2(x))
-        # x = F.relu(self.conv3(x))
-        # x = F.relu(self.fc4(x.view(state.size(0), -1)))
-        # actions = self.fc5(x)
-        state = state.to(self.device)
-        X = F.relu(self.fc1(state)) # we want to pass the state through the first layer
+        state = state.to(self.device,dtype=T.float32)
+        if len(state.shape) == 3:  # If the input is 3D, add a batch dimension
+            state = state.unsqueeze(0)
+        x = F.relu(self.conv1(state))
+        x = F.relu(self.conv2(x))
+        x = F.relu(self.conv3(x))
+        x = x.view(state.size(0), -1)
+
+        X = F.relu(self.fc1(x)) # we want to pass the state through the first layer
         X = F.relu(self.fc2(X)) # pass the output of the first layer through the second layer
         actions = self.fc3(X) # pass the output of the second layer through the third layer
                             # we don't use an activation function here because we want the raw Q values
         return actions
 
 class Agent(metaclass = Singleton):
-    def __init__(self, gamma, epsilon, lr, input_dims, batch_size, n_actions, max_mem_size = INPUT_DIMS * BATCH_SIZE * 10, eps_end = 0.01, eps_dec = 5e-4):
+    def __init__(self, gamma, epsilon, lr, input_dims, batch_size, n_actions, max_mem_size = 100000, eps_end = 0.01, eps_dec = 5e-4):
         self.gamma = gamma
         self.epsilon = epsilon
         self.eps_min = eps_end
@@ -111,7 +122,6 @@ class Agent(metaclass = Singleton):
         # (you're not selecting actions intelligently you're just doing it at random)
         # 2. another possibility is to start learning as soon as you filled up the batch size of memory
         if self.mem_ctr < self.batch_size:
-            print("Not enough memory to learn")
             return # we're gonna call the learn function every iteration of our game loop and if we have not filled up the batch size of our memory you just go 
                 # ahead and return, don't bother learning  
 

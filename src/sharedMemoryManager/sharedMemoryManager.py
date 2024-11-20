@@ -106,6 +106,11 @@ class SharedMemoryManager(metaclass = Singleton):
 
     def writeAt(self, index, value):
         self._sharedMemory.buf[index] = value
+
+    @staticmethod
+    def normalize_matrix(matrix):
+        max_value = max([max(row) for row in matrix])
+        return [[value / max_value for value in row] for row in matrix]
         
     @property
     def buffer(self):
@@ -124,7 +129,8 @@ class SharedMemoryManager(metaclass = Singleton):
     @property
     def matrixBuffer(self):
         if self._reloadData: self.readAndParseBuffer()
-        return self._parsedBuffer["matrix"]
+        return  self.normalize_matrix(self._parsedBuffer["matrix"])
     
     def __del__(self):
         self.closeSharedMemory()
+
