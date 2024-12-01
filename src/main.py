@@ -28,11 +28,16 @@ def main():
     # Init game loop
     scores = []
     epsilons = []
+    max_avg_score = -10
+    cpt_increase = 1
+    cpt_episode = 0
+    total_avg_score = 0
     for episode in range(NB_GAMES):
         observation = get_initial_game_state()
 
         done = False
         score = 0
+        # signal_save = False
 
         while not done:
             # choose an action based on the current state
@@ -60,12 +65,29 @@ def main():
         
         print(f"Episode {episode}, Score: {score}, Average Score: {avg_score}, Epsilon: {agent.epsilon:.2f}")
 
-        sharedMemoryManager = SharedMemoryManager()
-        sharedMemoryManager.writeAt(1199, 10)
+        cpt_episode += 1
+        total_avg_score += avg_score
 
-        if episode % save_frequency == 0:
+
+        #wait for the best time to save the model
+        if (avg_score > max_avg_score):
+            max_avg_score = avg_score
+            cpt_increase += 1
+            cpt_episode = 0
+            print(f"Max average score increased to {max_avg_score}, cpt_increase: {cpt_increase}")
             current_generation += 1
             save_model(agent, current_generation)
+        else:
+            if (cpt_episode > 20) and (((max_avg_score - avg_score) < 1) or (avg_score > (total_avg_score/cpt_episode)) ):
+                cpt_increase += 1
+                cpt_episode = 0
+                print(f"Average score increased to {avg_score}, cpt_increase: {cpt_increase}")
+                current_generation += 1
+                save_model(agent, current_generation)
+
+
+        sharedMemoryManager = SharedMemoryManager()
+        sharedMemoryManager.writeAt(1199, 10)
     
     sharedMemoryManager = SharedMemoryManager()
     del sharedMemoryManager
