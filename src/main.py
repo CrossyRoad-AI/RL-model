@@ -14,7 +14,6 @@ def main():
     if not os.path.exists('checkpoints'):
         os.makedirs('checkpoints')
 
-    save_frequency = 1000
     
     # Init shared memory manager
     SharedMemoryManager()
@@ -28,11 +27,15 @@ def main():
     # Init game loop
     scores = []
     epsilons = []
-    max_avg_score = -10
+    #modifier à la main entre les différents training?
+    max_avg_score = 0 #22.557000000000013
     cpt_increase = 1
     cpt_episode = 0
     total_avg_score = 0
-    for episode in range(NB_GAMES):
+    episode = 0
+    last_avg_score = -10
+    while agent.epsilon != 0.01: #for episode in range(NB_GAMES):
+        episode += 1
         observation = get_initial_game_state()
 
         done = False
@@ -72,13 +75,16 @@ def main():
         #wait for the best time to save the model
         if (avg_score > max_avg_score):
             max_avg_score = avg_score
+            last_avg_score = avg_score
             cpt_increase += 1
             cpt_episode = 0
             print(f"Max average score increased to {max_avg_score}, cpt_increase: {cpt_increase}")
             current_generation += 1
             save_model(agent, current_generation)
         else:
-            if (cpt_episode > 20) and (((max_avg_score - avg_score) < 1) or (avg_score > (total_avg_score/cpt_episode)) ):
+            #if no maximum is reached, take a score close to the maximum or take a average peak in the last 10 games
+            if (((cpt_episode > 50) and ((max_avg_score - avg_score) < 0.5)) or ((cpt_episode > 10) and ((avg_score > (total_avg_score/cpt_episode)) and (avg_score > last_avg_score)))):
+                last_avg_score = avg_score
                 cpt_increase += 1
                 cpt_episode = 0
                 print(f"Average score increased to {avg_score}, cpt_increase: {cpt_increase}")
@@ -92,7 +98,7 @@ def main():
     sharedMemoryManager = SharedMemoryManager()
     del sharedMemoryManager
 
-    x = [i+1 for i in range(NB_GAMES)]
+    x = [i+1 for i in range(episode)]
     filename = 'crossyroad.png'
     plotLearning(x, scores,epsilons, filename)
 
