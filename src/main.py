@@ -14,9 +14,9 @@ def main():
     if not os.path.exists('checkpoints'):
         os.makedirs('checkpoints')
 
-    save_frequency = 1000
     
     # Init shared memory manager
+<<<<<<< HEAD
     sharedMemoryManager=SharedMemoryManager()
     # last_position = (0, 0)
     # lastScore = 0
@@ -26,6 +26,9 @@ def main():
     best_episode = 0
     last_player_position = None
     current_player_position = None
+=======
+    SharedMemoryManager()
+>>>>>>> 9f76a6169472f3e6194d1e4f97fcce00084906bc
 
     agent = Agent(gamma = GAMMA, epsilon = EPSILON, lr = LR, input_dims = INPUT_DIMS, batch_size = BATCH_SIZE, n_actions = NB_ACTIONS, eps_end = EPS_MIN, eps_dec = EPS_DEC)
 
@@ -34,12 +37,24 @@ def main():
     # Init game loop
     scores = []
     epsilons = []
+<<<<<<< HEAD
+=======
+    #to modify for the general loop
+>>>>>>> 9f76a6169472f3e6194d1e4f97fcce00084906bc
     max_avg_score = -10 #22.557000000000013 for gen 701
     cpt_increase = 1
     cpt_episode = 0
     total_avg_score = 0
+<<<<<<< HEAD
     last_avg_score = -10
     for episode in range(NB_GAMES):
+=======
+    episode = 0
+    last_avg_score = -10
+    #deny of the 0.01 problem
+    while agent.epsilon != 0.01: # was for episode in range(NB_GAMES):
+        episode += 1
+>>>>>>> 9f76a6169472f3e6194d1e4f97fcce00084906bc
         observation = get_initial_game_state()
         # for row_idx, row in enumerate(observation):
         #     if 5 in row:  # Player position marker
@@ -48,7 +63,11 @@ def main():
 
         done = False
         score = 0
+<<<<<<< HEAD
         lastScore = 0
+=======
+        # signal_save = False
+>>>>>>> 9f76a6169472f3e6194d1e4f97fcce00084906bc
 
         while not done:
             # choose an action based on the current state
@@ -105,8 +124,34 @@ def main():
 
 
 
+        cpt_episode += 1
+        total_avg_score += avg_score
+
+
+        #wait for the best time to save the model
+        if agent.epsilon < 0.75 :
+            if (avg_score > max_avg_score):
+                max_avg_score = avg_score
+                last_avg_score = avg_score
+                cpt_increase += 1
+                cpt_episode = 0
+                print(f"Max average score increased to {max_avg_score}, cpt_increase: {cpt_increase}")
+                current_generation += 1
+                save_model(agent, current_generation)
+            else:
+                #if no maximum is reached, take a score close to the maximum or take an average peak in the last 10 games
+                if (((cpt_episode > 50) and ((max_avg_score - avg_score) < 0.5)) or ((cpt_episode > 10) and ((avg_score > (total_avg_score/cpt_episode)) and (avg_score > last_avg_score)))):
+                    last_avg_score = avg_score
+                    cpt_increase += 1
+                    cpt_episode = 0
+                    print(f"Average score increased to {avg_score}, cpt_increase: {cpt_increase}")
+                    current_generation += 1
+                    save_model(agent, current_generation)
+
+
         sharedMemoryManager = SharedMemoryManager()
         sharedMemoryManager.writeAt(1199, 10)
+<<<<<<< HEAD
 
         
     del sharedMemoryManager
@@ -117,6 +162,13 @@ def main():
         print(f"Best model saved at episode {best_episode} with score {best_score}")
 
     x = [i+1 for i in range(NB_GAMES)]
+=======
+    
+    sharedMemoryManager = SharedMemoryManager()
+    del sharedMemoryManager
+
+    x = [i+1 for i in range(episode)]
+>>>>>>> 9f76a6169472f3e6194d1e4f97fcce00084906bc
     filename = 'crossyroad.png'
     plotLearning(x, scores,epsilons, filename)
 
