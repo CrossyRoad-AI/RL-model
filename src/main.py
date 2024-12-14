@@ -16,7 +16,7 @@ def main():
 
     
     # Init shared memory manager
-    SharedMemoryManager()
+    sharedMemoryManager=SharedMemoryManager()
 
     agent = Agent(gamma = GAMMA, epsilon = EPSILON, lr = LR, input_dims = INPUT_DIMS, batch_size = BATCH_SIZE, n_actions = NB_ACTIONS, eps_end = EPS_MIN, eps_dec = EPS_DEC)
 
@@ -31,13 +31,11 @@ def main():
     cpt_episode = 0
     total_avg_score = 0
     last_avg_score = -10
+    last_player_position = None
+    current_player_position = None
+    step_count = 0
     for episode in range(NB_GAMES):
         observation = get_initial_game_state()
-        # for row_idx, row in enumerate(observation):
-        #     if 5 in row:  # Player position marker
-        #         current_player_position = (row_idx, row.index(5))
-        #         break
-
         done = False
         score = 0
         lastScore = 0
