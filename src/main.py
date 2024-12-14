@@ -16,19 +16,7 @@ def main():
 
     
     # Init shared memory manager
-<<<<<<< HEAD
-    sharedMemoryManager=SharedMemoryManager()
-    # last_position = (0, 0)
-    # lastScore = 0
-    step_count = 0
-    best_score = -float('inf')
-    best_model = None
-    best_episode = 0
-    last_player_position = None
-    current_player_position = None
-=======
     SharedMemoryManager()
->>>>>>> 9f76a6169472f3e6194d1e4f97fcce00084906bc
 
     agent = Agent(gamma = GAMMA, epsilon = EPSILON, lr = LR, input_dims = INPUT_DIMS, batch_size = BATCH_SIZE, n_actions = NB_ACTIONS, eps_end = EPS_MIN, eps_dec = EPS_DEC)
 
@@ -37,24 +25,13 @@ def main():
     # Init game loop
     scores = []
     epsilons = []
-<<<<<<< HEAD
-=======
     #to modify for the general loop
->>>>>>> 9f76a6169472f3e6194d1e4f97fcce00084906bc
     max_avg_score = -10 #22.557000000000013 for gen 701
     cpt_increase = 1
     cpt_episode = 0
     total_avg_score = 0
-<<<<<<< HEAD
     last_avg_score = -10
     for episode in range(NB_GAMES):
-=======
-    episode = 0
-    last_avg_score = -10
-    #deny of the 0.01 problem
-    while agent.epsilon != 0.01: # was for episode in range(NB_GAMES):
-        episode += 1
->>>>>>> 9f76a6169472f3e6194d1e4f97fcce00084906bc
         observation = get_initial_game_state()
         # for row_idx, row in enumerate(observation):
         #     if 5 in row:  # Player position marker
@@ -63,11 +40,7 @@ def main():
 
         done = False
         score = 0
-<<<<<<< HEAD
         lastScore = 0
-=======
-        # signal_save = False
->>>>>>> 9f76a6169472f3e6194d1e4f97fcce00084906bc
 
         while not done:
             # choose an action based on the current state
@@ -151,24 +124,11 @@ def main():
 
         sharedMemoryManager = SharedMemoryManager()
         sharedMemoryManager.writeAt(1199, 10)
-<<<<<<< HEAD
-
-        
-    del sharedMemoryManager
-
-    if best_model is not None:
-        agent.Q_eval.load_state_dict(best_model)
-        save_model(agent, current_generation)
-        print(f"Best model saved at episode {best_episode} with score {best_score}")
-
-    x = [i+1 for i in range(NB_GAMES)]
-=======
     
     sharedMemoryManager = SharedMemoryManager()
     del sharedMemoryManager
 
     x = [i+1 for i in range(episode)]
->>>>>>> 9f76a6169472f3e6194d1e4f97fcce00084906bc
     filename = 'crossyroad.png'
     plotLearning(x, scores,epsilons, filename)
 
