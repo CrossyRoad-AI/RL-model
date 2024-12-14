@@ -109,8 +109,8 @@ class SharedMemoryManager(metaclass = Singleton):
 
     @staticmethod
     def normalize_matrix(matrix):
-        max_value = max([max(row) for row in matrix])
-        return [[value / max_value for value in row] for row in matrix]
+        # max_value = max([max(row) for row in matrix])
+        return [[value / 5 for value in row] for row in matrix]
         
     @property
     def buffer(self):

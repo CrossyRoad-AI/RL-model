@@ -116,6 +116,8 @@ class Agent(metaclass = Singleton):
         
         return action
     
+
+    
     def learn(self): 
         # in the beginning we have a memory filled up with zeros and we can't learn anything from zeros so how do we deal with that?
         # 1. you can let the agent play a bunch of games randomly until it fills up the whole entirety of its memory and then you can go ahead and start learning
